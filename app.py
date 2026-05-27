@@ -41,8 +41,10 @@ app.add_middleware(
 
 UPLOAD_FOLDER = "PDFs"
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
+os.makedirs(
+    UPLOAD_FOLDER,
+    exist_ok=True
+)
 
 tenders = [
 
@@ -277,6 +279,7 @@ def home():
 
 
 @app.post("/upload-pdf")
+
 async def upload_pdf(
 
     file: UploadFile = File(...),
@@ -292,20 +295,31 @@ async def upload_pdf(
 
         "Past_Tenders",
 
+        category,
+
         sub_category
     )
 
-    os.makedirs(folder_path, exist_ok=True)
+    os.makedirs(
+
+        folder_path,
+
+        exist_ok=True
+    )
 
     file_path = os.path.join(
+
         folder_path,
+
         file.filename
     )
 
     with open(file_path, "wb") as buffer:
 
         shutil.copyfileobj(
+
             file.file,
+
             buffer
         )
 
@@ -322,6 +336,17 @@ async def upload_pdf(
             sub_category
         )
 
+        return {
+
+            "success": True,
+
+            "message":
+            "PDF uploaded and scanned successfully",
+
+            "file_path":
+            file_path
+        }
+
     elif file.filename.endswith(".docx"):
 
         scan_word_document(
@@ -335,13 +360,26 @@ async def upload_pdf(
             sub_category
         )
 
-    return {
+        return {
 
-        "success": True,
+            "success": True,
 
-        "message":
-        "Document uploaded and scanned successfully"
-    }
+            "message":
+            "Word document uploaded and scanned successfully",
+
+            "file_path":
+            file_path
+        }
+
+    else:
+
+        return {
+
+            "success": False,
+
+            "message":
+            "Only PDF and DOCX files are allowed"
+        }
 
 
 @app.get("/search-pdf")
