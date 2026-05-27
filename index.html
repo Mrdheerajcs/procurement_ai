@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>E-Procurement AI System</title>
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            font-family:Arial;
+            background:#0f172a;
+            color:white;
+            min-height:100vh;
+            padding:40px;
+        }
+
+        .container{
+            max-width:1300px;
+            margin:auto;
+        }
+
+        .section{
+            background:#1e293b;
+            padding:30px;
+            border-radius:20px;
+            margin-bottom:30px;
+        }
+
+        h1,h2{
+            color:#60a5fa;
+            margin-bottom:20px;
+        }
+
+        textarea,
+        input{
+
+            width:100%;
+            padding:18px;
+            border:none;
+            border-radius:12px;
+            background:#334155;
+            color:white;
+            margin-bottom:20px;
+            font-size:16px;
+        }
+
+        button{
+
+            background:#2563eb;
+            color:white;
+            border:none;
+            padding:14px 25px;
+            border-radius:12px;
+            cursor:pointer;
+            margin-right:10px;
+            font-size:16px;
+        }
+
+        button:hover{
+
+            background:#1d4ed8;
+        }
+
+        .result-card,
+        .search-result{
+
+            background:#475569;
+            padding:20px;
+            border-radius:15px;
+            margin-top:20px;
+        }
+
+        .item{
+
+            background:#334155;
+            padding:15px;
+            border-radius:12px;
+            margin-top:10px;
+        }
+
+        .label{
+            color:#93c5fd;
+            font-weight:bold;
+        }
+
+        .success{
+
+            color:#22c55e;
+            margin-top:15px;
+            font-weight:bold;
+        }
+
+        .keyword-tag{
+
+            display:inline-block;
+
+            background:#1d4ed8;
+
+            padding:6px 12px;
+
+            border-radius:20px;
+
+            margin:5px;
+        }
+
+        #suggestions{
+
+            background:#334155;
+
+            border-radius:12px;
+
+            overflow:hidden;
+
+            margin-top:-10px;
+
+            margin-bottom:20px;
+        }
+
+        .suggestion-item{
+
+            padding:15px;
+
+            cursor:pointer;
+
+            border-bottom:1px solid #475569;
+        }
+
+        .suggestion-item:hover{
+
+            background:#475569;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="section">
+
+        <h1>
+            AI Tender Recommendation
+        </h1>
+
+        <textarea
+
+            id="requirement"
+
+            placeholder="Enter tender requirement..."
+
+            onkeyup="showSuggestions()"
+
+        ></textarea>
+
+        <div id="suggestions"></div>
+
+        <button onclick="generateTender()">
+
+            Generate Suggestions
+
+        </button>
+
+        <a href="/download-word">
+
+            <button>
+
+                Download Word
+
+            </button>
+
+        </a>
+
+        <a href="/download-pdf">
+
+            <button>
+
+                Download PDF
+
+            </button>
+
+        </a>
+
+        <div id="results"></div>
+
+    </div>
+
+    <div class="section">
+
+        <h2>
+            Upload PDF or Word File
+        </h2>
+
+        <input
+            id="category"
+            placeholder="Category"
+        >
+
+        <input
+            id="subCategory"
+            placeholder="Sub Category"
+        >
+
+        <input
+            type="file"
+            id="pdfFile"
+        >
+
+        <button onclick="uploadPDF()">
+
+            Upload & Scan File
+
+        </button>
+
+        <div id="uploadResult"></div>
+
+    </div>
+
+    <div class="section">
+
+        <h2>
+            Search PDF / Word Content
+        </h2>
+
+        <input
+            id="searchQuery"
+            placeholder="Search keyword inside documents..."
+        >
+
+        <button onclick="searchPDF()">
+
+            Search Documents
+
+        </button>
+
+        <div id="searchResults"></div>
+
+    </div>
+
+</div>
+
+<script>
+
+async function showSuggestions(){
+
+    const text = document
+        .getElementById("requirement")
+        .value;
+
+    if(text.length < 2){
+
+        document.getElementById(
+            "suggestions"
+        ).innerHTML = "";
+
+        return;
+    }
+
+    const response = await fetch(
+
+        `/suggestions?query=${text}`
+    );
+
+    const data = await response.json();
+
+    let html = "";
+
+    data.results.forEach(item => {
+
+        html += `
+
+            <div
+                class="suggestion-item"
+
+                onclick="selectSuggestion(
+                    '${item.suggestion}'
+                )"
+            >
+
+                <b>${item.suggestion}</b>
+
+                <br>
+
+                <small>
+
+                    Found in:
+                    ${item.file_name}
+
+                </small>
+
+            </div>
+
+        `;
+    });
+
+    document.getElementById(
+        "suggestions"
+    ).innerHTML = html;
+}
+
+
+function selectSuggestion(value){
+
+    document.getElementById(
+        "requirement"
+    ).value = value;
+
+    document.getElementById(
+        "suggestions"
+    ).innerHTML = "";
+
+    generateTender();
+}
+
+
+async function generateTender(){
+
+    document.getElementById(
+        "suggestions"
+    ).innerHTML = "";
+
+    const requirement =
+        document.getElementById("requirement").value;
+
+    const response = await fetch(
+
+        "/api/ai/generate-tender",
+
+        {
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+                requirement: requirement
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    let html = "";
+
+    html += `
+
+        <div class="result-card">
+
+            <h3>
+                ${data.message}
+            </h3>
+
+        </div>
+
+    `;
+
+    if(data.top_matches.length > 0){
+
+        html += `
+
+            <div class="result-card">
+
+                <h2>
+
+                    New Tender Found
+
+                </h2>
+
+            </div>
+
+        `;
+
+        data.top_matches.forEach(tender => {
+
+            html += `
+
+                <div class="search-result">
+
+                    <h3>
+                        ${tender.title}
+                    </h3>
+
+            `;
+
+            tender.items.forEach(item => {
+
+                html += `
+
+                    <div class="item">
+
+                        <p>
+
+                            <span class="label">
+                                Item:
+                            </span>
+
+                            ${item.item_name}
+
+                        </p>
+
+                        <p>
+
+                            <span class="label">
+                                Quantity:
+                            </span>
+
+                            ${item.quantity}
+
+                        </p>
+
+                        <p>
+
+                            <span class="label">
+                                Rate:
+                            </span>
+
+                            ₹${item.rate}
+
+                        </p>
+
+                        <p>
+
+                            <span class="label">
+                                Specification:
+                            </span>
+
+                            ${item.specification}
+
+                        </p>
+
+                    </div>
+
+                `;
+            });
+
+            html += `</div>`;
+        });
+    }
+
+    if(data.pdf_suggestions.length > 0){
+
+        html += `
+
+            <div class="result-card">
+
+                <h2>
+
+                    Past Tender Found
+
+                </h2>
+
+            </div>
+
+        `;
+
+        data.pdf_suggestions.forEach(pdf => {
+
+            html += `
+
+                <div class="search-result">
+
+                    <h3>
+                        ${pdf.file_name}
+                    </h3>
+
+                    <p>
+
+                        <span class="label">
+                            Category:
+                        </span>
+
+                        ${pdf.category}
+
+                    </p>
+
+                    <p>
+
+                        <span class="label">
+                            Subcategory:
+                        </span>
+
+                        ${pdf.sub_category}
+
+                    </p>
+
+                    <div>
+
+                        ${pdf.keywords.map(keyword => `
+
+                            <span class="keyword-tag">
+
+                                ${keyword}
+
+                            </span>
+
+                        `).join("")}
+
+                    </div>
+
+                </div>
+
+            `;
+        });
+    }
+
+    if(
+        data.top_matches.length === 0
+        &&
+        data.pdf_suggestions.length === 0
+    ){
+
+        html += `
+
+            <div class="search-result">
+
+                <h3>
+
+                    No matching tenders found
+
+                </h3>
+
+            </div>
+
+        `;
+    }
+
+    document.getElementById(
+        "results"
+    ).innerHTML = html;
+}
+
+
+async function uploadPDF(){
+
+    const fileInput =
+        document.getElementById("pdfFile");
+
+    const file = fileInput.files[0];
+
+    const category =
+        document.getElementById("category").value;
+
+    const subCategory =
+        document.getElementById("subCategory").value;
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await fetch(
+
+        `/upload-pdf?category=${category}&sub_category=${subCategory}`,
+
+        {
+            method:"POST",
+
+            body: formData
+        }
+    );
+
+    const data = await response.json();
+
+    document.getElementById(
+        "uploadResult"
+    ).innerHTML = `
+
+        <div class="success">
+
+            ${data.message}
+
+        </div>
+
+    `;
+}
+
+
+async function searchPDF(){
+
+    const query =
+        document.getElementById(
+            "searchQuery"
+        ).value;
+
+    const response = await fetch(
+        `/search-pdf?query=${query}`
+    );
+
+    const data = await response.json();
+
+    let html = "";
+
+    if(data.matching_files.length === 0){
+
+        html = `
+
+            <div class="search-result">
+
+                <h3>
+                    No matching documents found
+                </h3>
+
+            </div>
+
+        `;
+    }
+
+    else{
+
+        data.matching_files.forEach(file => {
+
+            html += `
+
+                <div class="search-result">
+
+                    <h3>
+                        ${file[2]}
+                    </h3>
+
+                    <p>
+
+                        <span class="label">
+                            Category:
+                        </span>
+
+                        ${file[0]}
+
+                    </p>
+
+                    <p>
+
+                        <span class="label">
+                            Subcategory:
+                        </span>
+
+                        ${file[1]}
+
+                    </p>
+
+                </div>
+
+            `;
+        });
+    }
+
+    document.getElementById(
+        "searchResults"
+    ).innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
