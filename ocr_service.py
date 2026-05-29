@@ -406,3 +406,4 @@ def get_ai_pdf_suggestions(user_requirement):
 create_database()
 
 auto_scan_past_tenders()
+
