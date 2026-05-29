@@ -153,6 +153,7 @@ def generate_tender(request: TenderRequest):
 
         suggested_items.append(
             {
+                "mpr_hd_id" : row.get("mpr_id"),
                 "item_code": f"ITM{len(suggested_items) + 1:03}",
                 "item_name": row.get("item_name", "Unknown Item"),
                 "quantity": quantity,
